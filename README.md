@@ -17,13 +17,6 @@ A modern web application to convert SVG icons to a font, organize icons into gro
 
 ---
 
-## Demo
-
-[Live Demo](https://your-demo-url.com)  
-(Replace with your deployed URL if available.)
-
----
-
 ## Getting Started
 
 ### 1. Clone the Repository
