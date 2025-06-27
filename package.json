@@ -12,7 +12,7 @@
   "description": "",
   "dependencies": {
     "express": "^5.1.0",
-    "pg": "^latest",
+    "pg": "^8.11.3",
     "sequelize": "^latest",
     "bcrypt": "^6.0.0",
     "express-session": "^1.18.1",
