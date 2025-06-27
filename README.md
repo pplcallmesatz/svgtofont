@@ -1,7 +1,6 @@
 # SVG to Font Icon Web App
 
 A modern web application to convert SVG icons to a font, organize icons into groups, and manage your icon library.  
-**Free version:** Upload and download up to 20 icons per group.  
 **Self-host for unlimited use!**
 
 ---
