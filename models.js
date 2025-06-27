@@ -1,8 +1,13 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
-// Update these with your MySQL credentials
-const sequelize = new Sequelize('font', 'root', '', {
-  host: 'localhost',
+// Use environment variables for DB credentials, with defaults for local dev
+const DB_NAME = process.env.DB_NAME || 'font';
+const DB_USER = process.env.DB_USER || 'root';
+const DB_PASS = process.env.DB_PASS || '';
+const DB_HOST = process.env.DB_HOST || 'localhost';
+
+const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
+  host: DB_HOST,
   dialect: 'mysql',
   logging: false,
 });
@@ -11,7 +16,7 @@ const User = sequelize.define('User', {
   username: { type: DataTypes.STRING, unique: true, allowNull: false },
   password_hash: { type: DataTypes.STRING, allowNull: false },
   name: { type: DataTypes.STRING, allowNull: true },
-  email: { type: DataTypes.STRING, unique: true, allowNull: false },
+  email: { type: DataTypes.STRING, unique: true, allowNull: true },
 }, { timestamps: true });
 
 const Group = sequelize.define('Group', {
