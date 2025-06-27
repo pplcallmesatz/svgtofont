@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Profile - SVG Font App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-lg bg-white rounded-xl shadow-lg p-8">
+    <div class="flex flex-col items-center mb-6">
+      <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-2">SF</div>
+      <h1 class="text-2xl font-bold text-gray-800">Profile</h1>
+      <a href="/dashboard" class="text-blue-600 hover:underline mt-2">&larr; Back to Dashboard</a>
+    </div>
+    <form id="profileForm" class="space-y-4 mb-8">
+      <div>
+        <label class="block text-gray-700 font-semibold mb-1">Username</label>
+        <input id="username" type="text" class="w-full px-4 py-2 border rounded-lg bg-gray-100 text-gray-500" readonly>
+      </div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-1">Name</label>
+        <input id="name" type="text" class="w-full px-4 py-2 border rounded-lg" autocomplete="name">
+      </div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-1">Email</label>
+        <input id="email" type="email" class="w-full px-4 py-2 border rounded-lg" autocomplete="email">
+      </div>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">Save Profile</button>
+    </form>
+    <form id="passwordForm" class="space-y-4">
+      <div class="text-lg font-semibold text-gray-800 mb-2">Change Password</div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-1">Old Password</label>
+        <input id="oldPassword" type="password" class="w-full px-4 py-2 border rounded-lg" autocomplete="current-password">
+      </div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-1">New Password</label>
+        <input id="newPassword" type="password" class="w-full px-4 py-2 border rounded-lg" autocomplete="new-password">
+      </div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-1">Confirm New Password</label>
+        <input id="confirmPassword" type="password" class="w-full px-4 py-2 border rounded-lg" autocomplete="new-password">
+      </div>
+      <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-lg transition">Change Password</button>
+    </form>
+    <button id="logoutBtn" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg transition mt-8">Logout</button>
+    <div id="toast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden"></div>
+  </div>
+  <script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="satheeshdesign" data-description="Support me on Buy me a coffee!" data-message="" data-color="#FF813F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+  <script>
+    function showToast(message, success = true) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      toast.style.background = success ? '#16a34a' : '#dc2626';
+      setTimeout(() => { toast.style.opacity = '1'; }, 10);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => { toast.classList.add('hidden'); toast.style.opacity = '1'; }, 300);
+      }, 2000);
+    }
+
+    async function loadProfile() {
+      const res = await fetch('/api/profile');
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
+      if (!res.ok) return showToast('Failed to load profile', false);
+      const data = await res.json();
+      document.getElementById('username').value = data.username || '';
+      document.getElementById('name').value = data.name || '';
+      document.getElementById('email').value = data.email || '';
+    }
+
+    document.getElementById('profileForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Profile updated!');
+        loadProfile();
+      } else {
+        showToast(data.error || 'Failed to update profile', false);
+      }
+    };
+
+    document.getElementById('passwordForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const oldPassword = document.getElementById('oldPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const res = await fetch('/api/profile/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword, newPassword, confirmPassword })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Password changed!');
+        document.getElementById('oldPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+      } else {
+        showToast(data.error || 'Failed to change password', false);
+      }
+    };
+
+    document.getElementById('logoutBtn').onclick = async function() {
+      try {
+        const res = await fetch('/api/logout', { method: 'POST' });
+        if (res.ok) {
+          window.location.href = '/login';
+        } else {
+          showToast('Failed to logout', false);
+        }
+      } catch {
+        showToast('Failed to logout', false);
+      }
+    };
+
+    loadProfile();
+  </script>
+</body>
+</html> 

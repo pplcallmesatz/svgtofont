@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - SVG Font App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-200 min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+    <div class="flex flex-col items-center mb-6">
+      <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-2">SF</div>
+      <h1 class="text-2xl font-bold text-gray-800">SVG Font App</h1>
+      <p class="text-gray-500">Sign in to your account</p>
+    </div>
+    <form id="loginForm" class="space-y-4">
+      <input id="username" name="username" type="text" required placeholder="Username" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <input id="password" name="password" type="password" required placeholder="Password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">Login</button>
+    </form>
+    <div id="error" class="text-red-500 text-center mt-3"></div>
+    <div class="text-center mt-4">
+      <span class="text-gray-600">Don't have an account?</span>
+      <a href="register" class="text-blue-600 hover:underline">Register</a>
+    </div>
+  </div>
+  <script>
+    document.getElementById('loginForm').onsubmit = async function(e) {
+      e.preventDefault();
+      document.getElementById('error').textContent = '';
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        window.location.href = 'dashboard';
+      } else {
+        document.getElementById('error').textContent = data.error || 'Login failed';
+      }
+    }
+  </script>
+  <script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="satheeshdesign" data-description="Support me on Buy me a coffee!" data-message="" data-color="#FF813F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+</body>
+</html> 

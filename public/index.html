@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SVG to Font Icon Generator</title>
+  <style>
+    body { font-family: sans-serif; padding: 2em; background: #f9f9f9; }
+    .container { background: #fff; padding: 2em; border-radius: 8px; max-width: 500px; margin: auto; box-shadow: 0 2px 8px #0001; }
+    h1 { text-align: center; }
+    .dropzone { border: 2px dashed #888; border-radius: 8px; padding: 2em; text-align: center; color: #888; margin-bottom: 1em; cursor: pointer; background: #fafafa; }
+    .dropzone.dragover { border-color: #007bff; color: #007bff; background: #e6f0ff; }
+    .file-list { margin-bottom: 1em; }
+    .file-list li { margin: 0.2em 0; }
+    button { background: #007bff; color: #fff; border: none; padding: 0.7em 2em; border-radius: 4px; font-size: 1em; cursor: pointer; }
+    button:disabled { background: #aaa; }
+    .result { margin-top: 1em; text-align: center; }
+    .error { color: #c00; margin-top: 1em; text-align: center; }
+    .svg-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .svg-table th, .svg-table td { padding: 0.7em 0.5em; text-align: left; }
+    .svg-table th { color: #555; font-weight: 700; border-bottom: 2px solid #e2e8f0; background: #f7f7fa; }
+    .svg-table tr { border-bottom: 1px solid #e2e8f0; }
+    .svg-table td { vertical-align: middle; }
+    .svg-preview-cell { width: 60px; }
+    .svg-preview-box { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: #f1f1f7; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .filename-input { font-family: monospace; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 0.3em 0.6em; width: 140px; font-size: 1em; }
+    .filename-input.duplicate { border-color: #e53e3e; background: #fff5f5; }
+    .status-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-left: 2px; }
+    .status-dot.duplicate { background: #e53e3e; }
+    .status-dot.unique { background: #38a169; }
+    .delete-btn { background: #e53e3e; color: #fff; border: none; border-radius: 4px; padding: 0.3em 0.9em; cursor: pointer; font-size: 1em; margin-left: 0.5em; transition: background 0.2s; }
+    .delete-btn:hover { background: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SVG to Font Icon Generator</h1>
+    <form id="uploadForm">
+      <div id="dropzone" class="dropzone">Drag & drop SVG files here or click to select</div>
+      <div id="selectedPreviewList" class="flex flex-wrap gap-4 mb-2"></div>
+      <button type="submit" id="generateBtn" disabled>Generate Font</button>
+    </form>
+    <div class="result" id="result"></div>
+    <div id="toast" style="display:none;position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:1em 2em;border-radius:8px;box-shadow:0 4px 16px #0002;font-size:1.1em;z-index:1000;transition:opacity 0.3s;opacity:0;"></div>
+    <div class="error" id="error"></div>
+  </div>
+  <script>
+    let ICON_LIMIT = 10; // default, will be overwritten
+    fetch('/api/config').then(r => r.json()).then(cfg => { ICON_LIMIT = cfg.iconLimit || 10; });
+    const dropzone = document.getElementById('dropzone');
+    const uploadForm = document.getElementById('uploadForm');
+    const generateBtn = document.getElementById('generateBtn');
+    const result = document.getElementById('result');
+    const errorDiv = document.getElementById('error');
+    let files = [];
+
+    dropzone.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.svg';
+      input.multiple = true;
+      input.onchange = e => {
+        addFiles(Array.from(input.files));
+      };
+      input.click();
+    });
+
+    dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', e => {
+      dropzone.classList.remove('dragover');
+    });
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      addFiles(Array.from(e.dataTransfer.files));
+    });
+
+    function addFiles(newFiles) {
+      let added = 0;
+      for (const file of newFiles) {
+        if (files.length >= ICON_LIMIT) {
+          showToast('To upload more than ' + ICON_LIMIT + ' icons, please clone or fork the repo and self-host for unlimited access.');
+          break;
+        }
+        if (file.type === 'image/svg+xml' && !files.find(f => f.name === file.name)) {
+          files.push(file);
+          added++;
+        }
+      }
+      renderFileList();
+    }
+
+    function renderFileList() {
+      generateBtn.disabled = files.length === 0;
+      renderSelectedPreviewList();
+    }
+
+    function renderSelectedPreviewList() {
+      const previewList = document.getElementById('selectedPreviewList');
+      previewList.innerHTML = '';
+      // Count filenames for duplicate detection
+      const nameCounts = files.reduce((acc, f) => {
+        acc[f.name] = (acc[f.name] || 0) + 1;
+        return acc;
+      }, {});
+      if (!files.length) return;
+      // Create table
+      const table = document.createElement('table');
+      table.className = 'svg-table';
+      table.innerHTML = `<thead><tr><th>Preview</th><th>Filename</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody>`;
+      const tbody = table.querySelector('tbody');
+      files.forEach((file, idx) => {
+        if (file.type === 'image/svg+xml') {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const tr = document.createElement('tr');
+            // Red dot if duplicate
+            const isDuplicate = nameCounts[file.name] > 1;
+            // Preview cell
+            const previewTd = document.createElement('td');
+            previewTd.className = 'svg-preview-cell';
+            previewTd.innerHTML = `<div class="svg-preview-box">${e.target.result}</div>`;
+            // Filename input cell
+            const filenameTd = document.createElement('td');
+            const filenameInput = document.createElement('input');
+            filenameInput.type = 'text';
+            filenameInput.value = file.name;
+            filenameInput.className = 'filename-input' + (isDuplicate ? ' duplicate' : '');
+            filenameInput.onchange = function() {
+              let newName = filenameInput.value;
+              if (!newName.endsWith('.svg')) newName += '.svg';
+              if (!newName.trim()) return;
+              const newFile = new File([file], newName, { type: file.type });
+              files[idx] = newFile;
+              renderFileList();
+            };
+            filenameTd.appendChild(filenameInput);
+            // Status cell
+            const statusTd = document.createElement('td');
+            statusTd.innerHTML = `<span class="status-dot${isDuplicate ? ' duplicate' : ' unique'}" title="${isDuplicate ? 'Duplicate filename' : 'Unique filename'}"></span>`;
+            // Delete button cell
+            const deleteTd = document.createElement('td');
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.onclick = function() {
+              files.splice(idx, 1);
+              renderFileList();
+            };
+            deleteTd.appendChild(deleteBtn);
+            // Append all cells
+            tr.appendChild(previewTd);
+            tr.appendChild(filenameTd);
+            tr.appendChild(statusTd);
+            tr.appendChild(deleteTd);
+            tbody.appendChild(tr);
+          };
+          reader.readAsText(file);
+        }
+      });
+      previewList.appendChild(table);
+    }
+
+    uploadForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (files.length === 0) return;
+      errorDiv.textContent = '';
+      result.innerHTML = 'Generating...';
+      const formData = new FormData();
+      files.forEach(f => formData.append('svgs', f, f.name));
+      try {
+        const res = await fetch('/generate', {
+          method: 'POST',
+          body: formData
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          const msg = data.error || 'Failed to generate font.';
+          showToast(msg);
+          alert(msg);
+          throw new Error(msg);
+        }
+        const blob = await res.blob();
+        // Automatically download the ZIP file
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'iconfont.zip';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          a.remove();
+        }, 1000);
+        showToast('Font generated and downloaded!');
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        result.innerHTML = '';
+      }
+    });
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.opacity = '1'; }, 10);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => { toast.style.display = 'none'; }, 300);
+      }, 2000);
+    }
+  </script>
+  <div class="container" style="margin-top:2em;max-width:600px;">
+    <h2 style="font-size:1.3em;font-weight:700;color:#2d3748;margin-bottom:0.7em;">Documentation & Usage Notes</h2>
+    <ol style="color:#444;margin-bottom:1.5em;line-height:1.7;">
+      <li><b>In this free version you can upload and download only <span style='color:#2563eb;font-weight:600;'>20 icons</span> per upload and download.</b></li>
+      <li><b>If you need to organise the icons as groups, navigate to <a href="/dashboard" style="color:#2563eb;text-decoration:underline;">/dashboard</a> (registration required).</b></li>
+      <li><b>To use this application without restriction, <a href="https://github.com/pplcallmesatz/svgtofont" style="color:#2563eb;text-decoration:underline;">clone this repo</a>, change the <code>ICON_LIMIT</code> in <code>server.js</code>, and self-host.</b></li>
+    </ol>
+    <div style="background:#f7f7fa;padding:1.2em 1em;border-radius:10px;margin-bottom:1.5em;color:#b91c1c;font-size:1em;">
+      <b>Note:</b> This tool is fully generated using AI tools. Issues may be expected.
+    </div>
+    <div style="background:#f1f5f9;padding:1.2em 1em;border-radius:10px;">
+      <h3 style="font-size:1.1em;font-weight:700;color:#2d3748;margin-bottom:0.5em;">Developer Profile</h3>
+      <div style="margin-bottom:0.3em;"><b>Name:</b> Satheesh Kumar S</div>
+      <div style="margin-bottom:0.3em;"><b>Github Profile:</b> <a href="https://github.com/pplcallmesatz/" style="color:#2563eb;text-decoration:underline;">github.com/pplcallmesatz</a></div>
+      <div style="margin-bottom:0.3em;"><b>Github Repo:</b> <a href="https://github.com/pplcallmesatz/svgtofont" style="color:#2563eb;text-decoration:underline;">github.com/pplcallmesatz/svgtofont</a></div>
+      <div style="margin-bottom:0.3em;"><b>Email:</b> <a href="mailto:satheeshssk@icloud.com" style="color:#2563eb;text-decoration:underline;">satheeshssk@icloud.com</a></div>
+      <div><b>Instagram:</b> <a href="http://instagram.com/pplcallmesatz" style="color:#2563eb;text-decoration:underline;">instagram.com/pplcallmesatz</a></div>
+    </div>
+  </div>
+  <script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="satheeshdesign" data-description="Support me on Buy me a coffee!" data-message="" data-color="#FF813F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+</body>
+</html> 

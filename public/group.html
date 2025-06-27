@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Group View - SVG Font App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f7f8fa; margin: 0; padding: 0; }
+    .container { max-width: 700px; margin: 2em auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 2.5em 2em; }
+    h1 { font-size: 2em; font-weight: 800; color: #2d3748; margin-bottom: 0.5em; }
+    .icon-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.5em; background: #fff; border-radius: 12px; box-shadow: 0 2px 12px #0001; overflow: hidden; }
+    .icon-table th, .icon-table td { padding: 0.8em 0.5em; text-align: left; font-size: 1.05em; }
+    .icon-table th { color: #444; font-weight: 700; border-bottom: 2px solid #e2e8f0; background: #f7f7fa; letter-spacing: 0.02em; }
+    .icon-table tr { border-bottom: 1px solid #e2e8f0; transition: background 0.18s; }
+    .icon-table tr:hover { background: #f1f5fa; }
+    .icon-table td { vertical-align: middle; }
+    .icon-preview-cell { width: 60px; }
+    .icon-preview-box { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: #f1f1f7; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .icon-filename { font-family: monospace; color: #333; font-size: 1em; }
+    .delete-btn { background: #fee2e2; color: #b91c1c; border: none; border-radius: 4px; padding: 0.3em 1em; cursor: pointer; font-size: 1em; transition: background 0.2s, color 0.2s; }
+    .delete-btn:hover { background: #fecaca; color: #7f1d1d; }
+    .export-btn { background: #e0e7ff; color: #3730a3; border: none; border-radius: 4px; padding: 0.5em 1.5em; font-size: 1.1em; cursor: pointer; margin-top: 2em; transition: background 0.2s, color 0.2s; }
+    .export-btn:hover { background: #c7d2fe; color: #312e81; }
+    #toast { display:none;position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:1em 2em;border-radius:8px;box-shadow:0 4px 16px #0002;font-size:1.1em;z-index:1000;transition:opacity 0.3s;opacity:0; }
+    .back-link { color: #2563eb; text-decoration: none; font-weight: 500; margin-bottom: 1.5em; display: inline-block; }
+    .back-link:hover { text-decoration: underline; }
+    @media (max-width: 600px) {
+      .container { padding: 1em 0.5em; }
+      .icon-table th, .icon-table td { padding: 0.5em 0.2em; }
+      .icon-preview-box { width: 36px; height: 36px; }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,700,800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <a href="/dashboard" class="back-link">&larr; Back to Dashboard</a>
+    <h1 id="group-title">Group</h1>
+    <form id="icon-upload-form" style="margin-top:2em;">
+      <div id="dropzone" style="border:2px dashed #888;border-radius:8px;padding:2em;text-align:center;color:#888;margin-bottom:1em;cursor:pointer;background:#fafafa;transition:all 0.3s ease;">Drag & drop SVG files here or click to select</div>
+      <ul id="fileList" style="margin-bottom:1em;list-style:none;padding:0;"></ul>
+      <button type="submit" id="uploadBtn" style="background:#e0e7ff;color:#3730a3;border:none;border-radius:4px;padding:0.5em 1.5em;font-size:1.1em;cursor:pointer;transition:background 0.2s;" disabled>Upload Icons</button>
+    </form>
+    <div id="icon-section"></div>
+    <button id="exportBtn" class="export-btn">Export Font ZIP</button>
+    <div id="toast"></div>
+    <div class="container" style="margin-top:2em;max-width:700px;">
+      <h2 style="font-size:1.2em;font-weight:700;color:#2d3748;margin-bottom:0.7em;">Documentation & Usage Notes</h2>
+      <ol style="color:#444;margin-bottom:1.5em;line-height:1.7;">
+        <li><b>As this is a free tool you can upload or download only <span style='color:#2563eb;font-weight:600;'>20 icons</span> per group.</b></li>
+        <li><b>If you want to generate more than 20 icons, <a href='https://github.com/pplcallmesatz/svgtofont' style='color:#2563eb;text-decoration:underline;'>clone this repo</a>, update the <code>ICON_LIMIT</code> and self-host.</b></li>
+      </ol>
+      <div style="background:#f7f7fa;padding:1.2em 1em;border-radius:10px;margin-bottom:1.5em;color:#b91c1c;font-size:1em;">
+        <b>Note:</b> This tool is fully generated using AI tools. Issues may be expected.
+      </div>
+      <div style="background:#f1f5f9;padding:1.2em 1em;border-radius:10px;">
+        <h3 style="font-size:1.1em;font-weight:700;color:#2d3748;margin-bottom:0.5em;">Developer Profile</h3>
+        <div style="margin-bottom:0.3em;"><b>Name:</b> Satheesh Kumar S</div>
+        <div style="margin-bottom:0.3em;"><b>Github Profile:</b> <a href="https://github.com/pplcallmesatz/" style="color:#2563eb;text-decoration:underline;">github.com/pplcallmesatz</a></div>
+        <div style="margin-bottom:0.3em;"><b>Github Repo:</b> <a href="https://github.com/pplcallmesatz/svgtofont" style="color:#2563eb;text-decoration:underline;">github.com/pplcallmesatz/svgtofont</a></div>
+        <div style="margin-bottom:0.3em;"><b>Email:</b> <a href="mailto:satheeshssk@icloud.com" style="color:#2563eb;text-decoration:underline;">satheeshssk@icloud.com</a></div>
+        <div><b>Instagram:</b> <a href="http://instagram.com/pplcallmesatz" style="color:#2563eb;text-decoration:underline;">instagram.com/pplcallmesatz</a></div>
+      </div>
+    </div>
+  </div>
+  <script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="satheeshdesign" data-description="Support me on Buy me a coffee!" data-message="" data-color="#FF813F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+  <script>
+    let ICON_LIMIT = 10; // default, will be overwritten
+    fetch('/api/config').then(r => r.json()).then(cfg => { ICON_LIMIT = cfg.iconLimit || 10; });
+    // Helper: show toast
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.opacity = '1'; }, 10);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => { toast.style.display = 'none'; }, 300);
+      }, 2000);
+    }
+
+    // Get groupId from URL
+    function getGroupId() {
+      const match = window.location.pathname.match(/\/group\/(\d+)\/?/);
+      return match ? match[1] : null;
+    }
+    const groupId = getGroupId();
+    if (!groupId) {
+      document.getElementById('icon-section').innerHTML = '<div style="color:#c00">Invalid group URL.</div>';
+      document.getElementById('exportBtn').style.display = 'none';
+    } else {
+      loadGroup();
+    }
+
+    let files = [];
+    let existingIconCount = 0;
+
+    async function updateExistingIconCount() {
+      // Fetch current icon count in this group
+      try {
+        const res = await fetch(`/api/groups/${groupId}/icons`);
+        if (res.ok) {
+          const data = await res.json();
+          existingIconCount = data.icons.length;
+        }
+      } catch {}
+    }
+
+    // Patch loadGroup to update icon count
+    async function loadGroup() {
+      // Fetch group info
+      const groupRes = await fetch(`/api/groups`);
+      if (groupRes.status === 401 || groupRes.status === 403) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
+      if (!groupRes.ok) {
+        document.getElementById('icon-section').innerHTML = '<div style="color:#c00">Failed to load group info.</div>';
+        document.getElementById('exportBtn').style.display = 'none';
+        return;
+      }
+      const groupData = await groupRes.json();
+      const group = groupData.groups.find(g => String(g.id) === String(groupId));
+      if (!group) {
+        document.getElementById('icon-section').innerHTML = '<div style="color:#c00">Group not found or you do not have access.</div>';
+        document.getElementById('exportBtn').style.display = 'none';
+        return;
+      }
+      document.getElementById('group-title').textContent = group.name;
+      await updateExistingIconCount();
+      // Fetch icons
+      const iconRes = await fetch(`/api/groups/${groupId}/icons`);
+      if (iconRes.status === 401 || iconRes.status === 403) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
+      if (!iconRes.ok) {
+        document.getElementById('icon-section').innerHTML = '<div style="color:#c00">Failed to load icons.</div>';
+        return;
+      }
+      const iconData = await iconRes.json();
+      renderIconTable(iconData.icons);
+    }
+
+    // Helper: update icon filename
+    async function updateIconFilename(icon, newName) {
+      if (!newName.trim() || newName === icon.filename) return false;
+      // Only allow .svg extension
+      if (!newName.endsWith('.svg')) newName += '.svg';
+      const res = await fetch(`/api/groups/${icon.group_id}/icons/${icon.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: newName })
+      });
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+        return false;
+      }
+      if (res.ok) {
+        showToast('Filename updated!');
+        return true;
+      } else {
+        showToast('Failed to update filename');
+        return false;
+      }
+    }
+
+    function renderIconTable(icons) {
+      const section = document.getElementById('icon-section');
+      if (!icons.length) {
+        section.innerHTML = '<div style="color:#888">No icons in this group.</div>';
+        return;
+      }
+      // Duplicate detection
+      const nameCounts = icons.reduce((acc, icon) => {
+        acc[icon.filename] = (acc[icon.filename] || 0) + 1;
+        return acc;
+      }, {});
+      const table = document.createElement('table');
+      table.className = 'icon-table';
+      table.innerHTML = `<thead><tr><th>Preview</th><th>Filename</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody>`;
+      const tbody = table.querySelector('tbody');
+      icons.forEach(icon => {
+        const tr = document.createElement('tr');
+        // Preview
+        const previewTd = document.createElement('td');
+        previewTd.className = 'icon-preview-cell';
+        const img = document.createElement('img');
+        img.src = `/user_icons/${icon.user_id}/${icon.group_id}/${icon.filename}`;
+        img.alt = icon.filename;
+        img.className = 'icon-preview-box';
+        img.onerror = function() { this.style.display = 'none'; };
+        previewTd.appendChild(img);
+        // Filename (editable)
+        const filenameTd = document.createElement('td');
+        filenameTd.className = 'icon-filename';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = icon.filename;
+        input.className = 'icon-filename';
+        if (nameCounts[icon.filename] > 1) input.style.borderColor = '#e53e3e';
+        input.onblur = async function() {
+          if (input.value !== icon.filename) {
+            const ok = await updateIconFilename(icon, input.value);
+            if (ok) loadGroup();
+            else input.value = icon.filename;
+          }
+        };
+        input.onkeydown = async function(e) {
+          if (e.key === 'Enter') {
+            input.blur();
+          }
+        };
+        filenameTd.appendChild(input);
+        // Status (red dot for duplicate, green for unique)
+        const statusTd = document.createElement('td');
+        if (nameCounts[icon.filename] > 1) {
+          statusTd.innerHTML = '<span title="Duplicate filename" style="display:inline-block;width:12px;height:12px;background:#e53e3e;border-radius:50%;margin-left:2px;"></span>';
+        } else {
+          statusTd.innerHTML = '<span title="Unique filename" style="display:inline-block;width:12px;height:12px;background:#38a169;border-radius:50%;margin-left:2px;"></span>';
+        }
+        // Action
+        const actionTd = document.createElement('td');
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.onclick = function() { window.deleteIcon(icon); };
+        actionTd.appendChild(deleteBtn);
+        tr.appendChild(previewTd);
+        tr.appendChild(filenameTd);
+        tr.appendChild(statusTd);
+        tr.appendChild(actionTd);
+        tbody.appendChild(tr);
+      });
+      section.innerHTML = '';
+      section.appendChild(table);
+    }
+
+    document.getElementById('exportBtn').onclick = async function() {
+      const res = await fetch(`/api/groups/${groupId}/export`, { method: 'POST' });
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
+      if (!res.ok) {
+        let msg = 'Export failed.';
+        try {
+          const data = await res.json();
+          if (data && data.error) msg = data.error;
+        } catch {}
+        alert(msg);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'iconfont.zip';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        a.remove();
+      }, 1000);
+      showToast('Font ZIP exported!');
+    };
+
+    // Upload logic
+    const dropzone = document.getElementById('dropzone');
+    const fileList = document.getElementById('fileList');
+    const uploadForm = document.getElementById('icon-upload-form');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    dropzone.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.svg';
+      input.multiple = true;
+      input.onchange = e => {
+        addFiles(Array.from(input.files));
+      };
+      input.click();
+    });
+    dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropzone.style.background = '#e6f0ff';
+      dropzone.style.color = '#007bff';
+      dropzone.style.borderColor = '#007bff';
+    });
+    dropzone.addEventListener('dragleave', e => {
+      dropzone.style.background = '#fafafa';
+      dropzone.style.color = '#888';
+      dropzone.style.borderColor = '#888';
+    });
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.style.background = '#fafafa';
+      dropzone.style.color = '#888';
+      dropzone.style.borderColor = '#888';
+      addFiles(Array.from(e.dataTransfer.files));
+    });
+
+    function addFiles(newFiles) {
+      let added = 0;
+      if (existingIconCount + files.length >= ICON_LIMIT) {
+        showToast('Max ' + ICON_LIMIT + ' icons per group. Delete some to add more.');
+        return;
+      }
+      for (const file of newFiles) {
+        if (files.length + existingIconCount >= ICON_LIMIT) {
+          showToast('Max ' + ICON_LIMIT + ' icons per group. Delete some to add more.');
+          break;
+        }
+        if (file.type === 'image/svg+xml' && !files.find(f => f.name === file.name)) {
+          files.push(file);
+          added++;
+        }
+      }
+      renderFileList();
+    }
+
+    function renderFileList() {
+      fileList.innerHTML = files.map(f => `<li style='display:inline-block;background:#e0e7ff;color:#3730a3;padding:0.3em 0.8em;border-radius:4px;margin:0 0.5em 0.5em 0;font-size:0.97em;'>${f.name}</li>`).join('');
+      uploadBtn.disabled = files.length === 0 || (files.length + existingIconCount > ICON_LIMIT);
+    }
+
+    uploadForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (files.length === 0) return;
+      uploadBtn.disabled = true;
+      const formData = new FormData();
+      files.forEach(f => formData.append('svgs', f, f.name));
+      try {
+        const res = await fetch(`/api/groups/${groupId}/icons`, {
+          method: 'POST',
+          body: formData
+        });
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+          return;
+        }
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Icons uploaded!');
+          files = [];
+          renderFileList();
+          loadGroup();
+        } else {
+          showToast(data.error || 'Failed to upload icons');
+        }
+      } catch (err) {
+        showToast('Failed to upload icons');
+      }
+      uploadBtn.disabled = false;
+    });
+
+    // Patch: Add redirect for icon delete and filename update
+    window.updateIconFilename = updateIconFilename;
+    window.deleteIcon = async function(icon) {
+      if (!confirm('Delete this icon?')) return;
+      const res = await fetch(`/api/groups/${icon.group_id}/icons/${icon.id}`, { method: 'DELETE' });
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
+      if (res.ok) {
+        showToast('Icon deleted');
+        loadGroup();
+      } else {
+        showToast('Failed to delete icon');
+      }
+    }
+  </script>
+</body>
+</html> 
