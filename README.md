@@ -55,15 +55,6 @@ node server.js
 
 - The server will run at [http://localhost:3000](http://localhost:3000)
 
-### 6. (Optional) Start the React Client
-
-If you want to use the React client in `client/` (not required for the main app):
-
-```bash
-cd client
-npm start
-```
-
 ---
 
 ## Configuration
