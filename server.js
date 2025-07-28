@@ -180,9 +180,26 @@ app.post('/generate', upload.array('svgs'), async (req, res) => {
   for (const file of files) {
     const filePath = path.join(tmpDir, file.originalname);
     
-    // Optimize SVG before saving
+    // Optimize SVG before saving with error handling
     const svgContent = file.buffer.toString('utf8');
-    const optimizedSvg = optimize(svgContent, {
+    let optimizedSvg;
+    try {
+      // Pre-clean: Remove invalid HTML elements and problematic content
+      let cleanedSvg = svgContent
+        .replace(/<div[^>]*>.*?<\/div>/gs, '') // Remove div elements
+        .replace(/<script[^>]*>.*?<\/script>/gs, '') // Remove script elements
+        .replace(/<style[^>]*>.*?<\/style>/gs, '') // Remove style elements
+        .replace(/<!--.*?-->/gs, '') // Remove comments
+        .replace(/data-channel-name="[^"]*"/g, '') // Remove data attributes
+        .replace(/id="[^"]*"/g, '') // Remove IDs that might cause conflicts
+        .replace(/xmlns=""/g, '') // Remove empty xmlns attributes
+        .replace(/fill-rule="[^"]*"/g, '') // Remove fill-rule attributes
+        .replace(/clip-rule="[^"]*"/g, '') // Remove clip-rule attributes
+        .replace(/clip-path="[^"]*"/g, '') // Remove clip-path attributes
+        .replace(/<defs>.*?<\/defs>/gs, '') // Remove defs sections
+        .replace(/<clipPath[^>]*>.*?<\/clipPath>/gs, ''); // Remove clipPath elements
+      
+      optimizedSvg = optimize(cleanedSvg, {
       plugins: [
         'removeDoctype',
         'removeXMLProcInst',
@@ -218,9 +235,35 @@ app.post('/generate', upload.array('svgs'), async (req, res) => {
         'removeUnusedNS',
         'sortDefsChildren',
         'removeTitle',
-        'removeDesc'
+        'removeDesc',
+        {
+          name: 'convertPathData',
+          params: {
+            floatPrecision: 3,
+            transformPrecision: 5,
+            matrixToTransform: true,
+            shortArc: true,
+            lineTo: true,
+            curve: true,
+            arc: true
+          }
+        },
+        {
+          name: 'cleanupNumericValues',
+          params: {
+            floatPrecision: 3,
+            leadingZero: false,
+            defaultPx: true,
+            convertToPx: true
+          }
+        }
       ]
     });
+    } catch (error) {
+      console.warn(`Failed to optimize SVG ${file.originalname}:`, error.message);
+      // Fallback to original SVG if optimization fails
+      optimizedSvg = { data: svgContent };
+    }
     
     fs.writeFileSync(filePath, optimizedSvg.data);
     svgPaths.push(filePath);
@@ -352,9 +395,26 @@ app.post('/api/groups/:groupId/export', requireAuth, async (req, res) => {
     const filePath = path.join(iconDir, icon.filename);
     if (!fs.existsSync(filePath)) return res.status(500).json({ error: `Missing file: ${filePath}` });
     
-    // Read and optimize SVG
+    // Read and optimize SVG with error handling
     const svgContent = fs.readFileSync(filePath, 'utf8');
-    const optimizedSvg = optimize(svgContent, {
+    let optimizedSvg;
+    try {
+      // Pre-clean: Remove invalid HTML elements and problematic content
+      let cleanedSvg = svgContent
+        .replace(/<div[^>]*>.*?<\/div>/gs, '') // Remove div elements
+        .replace(/<script[^>]*>.*?<\/script>/gs, '') // Remove script elements
+        .replace(/<style[^>]*>.*?<\/style>/gs, '') // Remove style elements
+        .replace(/<!--.*?-->/gs, '') // Remove comments
+        .replace(/data-channel-name="[^"]*"/g, '') // Remove data attributes
+        .replace(/id="[^"]*"/g, '') // Remove IDs that might cause conflicts
+        .replace(/xmlns=""/g, '') // Remove empty xmlns attributes
+        .replace(/fill-rule="[^"]*"/g, '') // Remove fill-rule attributes
+        .replace(/clip-rule="[^"]*"/g, '') // Remove clip-rule attributes
+        .replace(/clip-path="[^"]*"/g, '') // Remove clip-path attributes
+        .replace(/<defs>.*?<\/defs>/gs, '') // Remove defs sections
+        .replace(/<clipPath[^>]*>.*?<\/clipPath>/gs, ''); // Remove clipPath elements
+      
+      optimizedSvg = optimize(cleanedSvg, {
       plugins: [
         'removeDoctype',
         'removeXMLProcInst',
@@ -393,6 +453,11 @@ app.post('/api/groups/:groupId/export', requireAuth, async (req, res) => {
         'removeDesc'
       ]
     });
+    } catch (error) {
+      console.warn(`Failed to optimize SVG ${icon.filename}:`, error.message);
+      // Fallback to original SVG if optimization fails
+      optimizedSvg = { data: svgContent };
+    }
     
     // Save optimized SVG to temp location
     const tmpDir = path.join(__dirname, 'tmp');
