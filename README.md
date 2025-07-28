@@ -1,6 +1,7 @@
 # SVG to Font Icon Web App
 
 A modern web application to convert SVG icons to a font, organize icons into groups, and manage your icon library.  
+**Free version:** Upload and download up to 20 icons per group.  
 **Self-host for unlimited use!**
 
 ---
@@ -14,6 +15,13 @@ A modern web application to convert SVG icons to a font, organize icons into gro
 - **Limits:** Free version allows up to 20 icons per group/upload/download.
 - **Self-hosting:** Remove all limits by changing a single variable and running on your own server.
 - **Buy Me a Coffee widget:** Support the developer directly from the app.
+
+---
+
+## Demo
+
+[Live Demo](https://your-demo-url.com)  
+(Replace with your deployed URL if available.)
 
 ---
 
@@ -54,6 +62,15 @@ node server.js
 ```
 
 - The server will run at [http://localhost:3000](http://localhost:3000)
+
+### 6. (Optional) Start the React Client
+
+If you want to use the React client in `client/` (not required for the main app):
+
+```bash
+cd client
+npm start
+```
 
 ---
 

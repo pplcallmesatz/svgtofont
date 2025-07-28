@@ -1,15 +1,9 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
-// Use environment variables for DB credentials, with defaults for local dev
-const DB_NAME = process.env.DB_NAME || 'font';
-const DB_USER = process.env.DB_USER || 'root';
-const DB_PASS = process.env.DB_PASS || '';
-const DB_HOST = process.env.DB_HOST || 'localhost';
-const DB_DIALECT = process.env.DB_DIALECT || 'mysql'; // or 'postgres' for Supabase
-
-const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
-  host: DB_HOST,
-  dialect: DB_DIALECT,
+// Update these with your MySQL credentials
+const sequelize = new Sequelize('new_font', 'root', '', {
+  host: '127.0.0.1',
+  dialect: 'mysql',
   logging: false,
 });
 

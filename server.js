@@ -15,7 +15,7 @@ const upload = multer({
   limits: { fileSize: 256 * 1024 } // 256 KB per file
 });
 
-const ICON_LIMIT = 20; // <--- This is where ICON_LIMIT is set
+const ICON_LIMIT = 2000; // <--- This is where ICON_LIMIT is set
 
 // Session middleware
 app.use(session({
