@@ -15,13 +15,14 @@ A modern web application to convert SVG icons to a font, organize icons into gro
 - **Limits:** Free version allows up to 20 icons per group/upload/download.
 - **Self-hosting:** Remove all limits by changing a single variable and running on your own server.
 - **Buy Me a Coffee widget:** Support the developer directly from the app.
+- **PostgreSQL Support:** Cloud-ready with PostgreSQL database support.
 
 ---
 
 ## Demo
 
-[Live Demo](https://your-demo-url.com)  
-(Replace with your deployed URL if available.)
+[Live Demo](https://svgtofonticon.onrender.com/)  
+Try the app online with full functionality!
 
 ---
 
@@ -38,18 +39,30 @@ cd svgtofont
 
 ```bash
 npm install
-cd client
-npm install
-cd ..
 ```
 
-### 3. Configure the Database
+### 3. Configure Environment Variables
 
-- This app uses **MySQL** via Sequelize.
-- Create a database (e.g., `font`).
-- Update your MySQL credentials in `models.js` and `config/config.json` if needed.
+Create a `.env` file in the project root with your database configuration:
 
-### 4. Run Migrations
+```env
+DATABASE_URL=postgresql://username:password@host:port/database
+DB_DIALECT=postgres
+```
+
+**For local PostgreSQL:**
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/svgtofont
+DB_DIALECT=postgres
+```
+
+**For cloud databases (Render, Heroku, etc.):**
+```env
+DATABASE_URL=postgresql://user:pass@host.com/database
+DB_DIALECT=postgres
+```
+
+### 4. Run Database Migrations
 
 ```bash
 npx sequelize-cli db:migrate
@@ -63,15 +76,6 @@ node server.js
 
 - The server will run at [http://localhost:3000](http://localhost:3000)
 
-### 6. (Optional) Start the React Client
-
-If you want to use the React client in `client/` (not required for the main app):
-
-```bash
-cd client
-npm start
-```
-
 ---
 
 ## Configuration
@@ -80,9 +84,37 @@ npm start
 
 - The maximum number of icons per group/upload is controlled by a single variable in `server.js`:
   ```js
-  const ICON_LIMIT = 20; // Change this value to set your own limit
+  const ICON_LIMIT = 2000; // Change this value to set your own limit
   ```
 - The frontend fetches this value automatically from the backend.
+
+### Database Configuration
+
+- The app uses **PostgreSQL** with Sequelize ORM.
+- Database configuration is managed through environment variables.
+- SSL is automatically configured for cloud database connections.
+
+---
+
+## Project Structure
+
+```
+svgtofont/
+├── config/
+│   └── config.js          # Database configuration
+├── migrations/            # Database migration files
+├── models.js             # Sequelize models
+├── server.js             # Express server
+├── public/               # Static HTML files
+│   ├── index.html        # Main SVG to font converter
+│   ├── login.html        # Login page
+│   ├── register.html     # Registration page
+│   ├── dashboard.html    # User dashboard
+│   ├── group.html        # Group management
+│   └── profile.html      # User profile
+├── user_icons/           # User uploaded icons
+└── .env                  # Environment variables
+```
 
 ---
 
@@ -95,12 +127,49 @@ npm start
 
 ---
 
+## Dependencies
+
+- **Express.js** - Web framework
+- **Sequelize** - ORM for PostgreSQL
+- **PostgreSQL** - Database (with `pg` driver)
+- **Webfont** - SVG to font conversion
+- **Multer** - File upload handling
+- **Bcrypt** - Password hashing
+- **Express-session** - Session management
+- **JSZip** - ZIP file generation
+- **Dotenv** - Environment variable management
+
+---
+
 ## Self-Hosting & Unlimited Use
 
 To remove all limits:
 1. Clone this repo.
-2. Change the `ICON_LIMIT` value in `server.js`.
-3. Deploy on your own server.
+2. Set up your PostgreSQL database.
+3. Configure your `.env` file with your database URL.
+4. Change the `ICON_LIMIT` value in `server.js`.
+5. Deploy on your own server.
+
+---
+
+## Deployment
+
+### Environment Variables for Production
+
+Make sure to set these environment variables in your production environment:
+
+```env
+DATABASE_URL=your_production_database_url
+DB_DIALECT=postgres
+NODE_ENV=production
+```
+
+### Supported Platforms
+
+- **Vercel** - Use the included `vercel.json`
+- **Heroku** - Add PostgreSQL addon
+- **Railway** - Direct PostgreSQL support
+- **Render** - PostgreSQL service available
 
 ---
 
