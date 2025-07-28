@@ -7,6 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
+const { optimize } = require('svgo');
 const { sequelize, User, Group, Icon } = require('./models');
 
 const app = express();
@@ -174,11 +175,54 @@ app.post('/generate', upload.array('svgs'), async (req, res) => {
   const tmpDir = path.join(__dirname, 'tmp');
   if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir);
 
-  // Save SVGs to temp dir
+  // Save SVGs to temp dir with optimization
   const svgPaths = [];
   for (const file of files) {
     const filePath = path.join(tmpDir, file.originalname);
-    fs.writeFileSync(filePath, file.buffer);
+    
+    // Optimize SVG before saving
+    const svgContent = file.buffer.toString('utf8');
+    const optimizedSvg = optimize(svgContent, {
+      plugins: [
+        'removeDoctype',
+        'removeXMLProcInst',
+        'removeComments',
+        'removeMetadata',
+        'removeEditorsNSData',
+        'cleanupAttrs',
+        'mergeStyles',
+        'inlineStyles',
+        'minifyStyles',
+        'cleanupIds',
+        'removeRasterImages',
+        'removeUselessDefs',
+        'cleanupNumericValues',
+        'convertColors',
+        'removeUnknownsAndDefaults',
+        'removeNonInheritableGroupAttrs',
+        'removeUselessStrokeAndFill',
+        'removeViewBox',
+        'cleanupEnableBackground',
+        'removeHiddenElems',
+        'removeEmptyText',
+        'convertShapeToPath',
+        'convertEllipseToCircle',
+        'moveElemsAttrsToGroup',
+        'moveGroupAttrsToElems',
+        'collapseGroups',
+        'convertPathData',
+        'convertTransform',
+        'removeEmptyAttrs',
+        'removeEmptyContainers',
+        'mergePaths',
+        'removeUnusedNS',
+        'sortDefsChildren',
+        'removeTitle',
+        'removeDesc'
+      ]
+    });
+    
+    fs.writeFileSync(filePath, optimizedSvg.data);
     svgPaths.push(filePath);
   }
   // Add debug logs here
@@ -199,6 +243,17 @@ app.post('/generate', upload.array('svgs'), async (req, res) => {
     template: 'css',
     templateClassName: 'icon',
     templateFontPath: './fonts/',
+    normalize: true,
+    fontHeight: 1000,
+    descent: 200,
+    round: 1e12,
+    centerHorizontally: true,
+    fixedWidth: true,
+    fontStyle: 'normal',
+    fontWeight: 'normal',
+    addHashInFontUrl: false,
+    prependUnicode: false,
+    startUnicode: 0xE001,
   });
   // Create a ZIP file
   const zip = new JSZip();
@@ -290,10 +345,61 @@ app.post('/api/groups/:groupId/export', requireAuth, async (req, res) => {
   if (!icons.length) return res.status(400).json({ error: 'No icons in group' });
   if (icons.length > ICON_LIMIT) return res.status(400).json({ error: `Cannot export: More than ${ICON_LIMIT} icons in this group. Please delete some icons.` });
   const iconDir = path.join(__dirname, 'user_icons', String(req.session.userId), String(groupId));
-  const svgPaths = icons.map(icon => path.join(iconDir, icon.filename));
-  // Check all files exist
-  for (const p of svgPaths) {
-    if (!fs.existsSync(p)) return res.status(500).json({ error: `Missing file: ${p}` });
+  const svgPaths = [];
+  
+  // Load and optimize SVGs
+  for (const icon of icons) {
+    const filePath = path.join(iconDir, icon.filename);
+    if (!fs.existsSync(filePath)) return res.status(500).json({ error: `Missing file: ${filePath}` });
+    
+    // Read and optimize SVG
+    const svgContent = fs.readFileSync(filePath, 'utf8');
+    const optimizedSvg = optimize(svgContent, {
+      plugins: [
+        'removeDoctype',
+        'removeXMLProcInst',
+        'removeComments',
+        'removeMetadata',
+        'removeEditorsNSData',
+        'cleanupAttrs',
+        'mergeStyles',
+        'inlineStyles',
+        'minifyStyles',
+        'cleanupIds',
+        'removeRasterImages',
+        'removeUselessDefs',
+        'cleanupNumericValues',
+        'convertColors',
+        'removeUnknownsAndDefaults',
+        'removeNonInheritableGroupAttrs',
+        'removeUselessStrokeAndFill',
+        'removeViewBox',
+        'cleanupEnableBackground',
+        'removeHiddenElems',
+        'removeEmptyText',
+        'convertShapeToPath',
+        'convertEllipseToCircle',
+        'moveElemsAttrsToGroup',
+        'moveGroupAttrsToElems',
+        'collapseGroups',
+        'convertPathData',
+        'convertTransform',
+        'removeEmptyAttrs',
+        'removeEmptyContainers',
+        'mergePaths',
+        'removeUnusedNS',
+        'sortDefsChildren',
+        'removeTitle',
+        'removeDesc'
+      ]
+    });
+    
+    // Save optimized SVG to temp location
+    const tmpDir = path.join(__dirname, 'tmp');
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir);
+    const optimizedPath = path.join(tmpDir, `optimized_${icon.filename}`);
+    fs.writeFileSync(optimizedPath, optimizedSvg.data);
+    svgPaths.push(optimizedPath);
   }
   try {
     const result = await webfont({
@@ -303,6 +409,11 @@ app.post('/api/groups/:groupId/export', requireAuth, async (req, res) => {
       template: 'css',
       templateClassName: 'icon',
       templateFontPath: './fonts/',
+      normalize: true,
+      fontHeight: 1000,
+      descent: 200,
+      round: 1e12,
+      centerHorizontally: true,
     });
     const zip = new JSZip();
     zip.file('fonts/iconfont.ttf', result.ttf);
